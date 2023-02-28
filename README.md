@@ -24,4 +24,4 @@ Controls:
 * Use **Up** arrow key to rotate the figures.
 * Use **Space** to fall instantly.
 * Press **P** to pause or unpause the game.
-* Press **Esc** or **q** to quit the game.
+* Press **Esc** or **Q** to quit the game.
