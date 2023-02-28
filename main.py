@@ -25,18 +25,19 @@ score_font = pygame.font.SysFont("Adobe Gothic Std Kalin", 55)
 lvl_font = pygame.font.SysFont("Futura Black", 30)
 # load sounds
 # taken from OpengameArt and Freesound
-level_completion = pygame.mixer.Sound('tetris\sounds\lvl_complete.wav')
-background_noise = pygame.mixer.Sound('tetris\sounds\/background_noise.mp3')
-game_over = pygame.mixer.Sound('tetris\sounds\game_over.wav')
+level_completion = pygame.mixer.Sound('sounds\lvl_complete.mp3')
+background_noise = pygame.mixer.Sound('sounds\/background_noise.mp3')
+game_over = pygame.mixer.Sound('sounds\game_over.mp3')
+hard_mode = pygame.mixer.Sound('sounds\push_ahead.ogg')
 
 # load all images
-img1 = pygame.image.load('tetris\Pieces\I_piece.png')
-img2 = pygame.image.load('tetris\Pieces\J_piece.png')
-img3 = pygame.image.load('tetris\Pieces\L_piece.png')
-img4 = pygame.image.load('tetris\Pieces\O_piece.png')
-img5 = pygame.image.load('tetris\Pieces\S_piece.png')
-img6 = pygame.image.load('tetris\Pieces\T_piece.png')
-img7 = pygame.image.load('tetris\Pieces\Z_piece.png')
+img1 = pygame.image.load('Pieces\I_piece.png')
+img2 = pygame.image.load('Pieces\J_piece.png')
+img3 = pygame.image.load('Pieces\L_piece.png')
+img4 = pygame.image.load('Pieces\O_piece.png')
+img5 = pygame.image.load('Pieces\S_piece.png')
+img6 = pygame.image.load('Pieces\T_piece.png')
+img7 = pygame.image.load('Pieces\Z_piece.png')
 
 IMAGE_SCALING = (26, 26)
 
@@ -187,15 +188,16 @@ class Tetris:
             cleared = True
 
             if cleared:
+                pygame.mixer.Sound.stop(background_noise)
                 pygame.mixer.Sound.play(level_completion)
-                pygame.mixer.Sound.set_volume(level_completion,0.9)
+                pygame.mixer.Sound.set_volume(level_completion,.8)
                 del self.board[row]
                 self.board.insert(0, [0 for i in range(self.cols)])
                 cleared_rows += 1
                 self.score += 10 * (self.level + 1)
                 recurse = True
 
-                if self.score % (100 + 20 * (self.level+1)) == 0:
+                if self.score % (10) == 0:
                     self.level += 1
         if recurse:
             self.clear_line()
@@ -214,9 +216,10 @@ def main():
     clock = pygame.time.Clock()
     block_fall = pygame.USEREVENT + 1
     tetris = Tetris(ROWS, COLUMNS)
-    pygame.time.set_timer(block_fall, 1000 - 20 * (tetris.level+1))     # blocks fall periodically, faster when the level is higher
+    pygame.time.set_timer(block_fall, 1000 - 50 * (tetris.level+1))     # blocks fall periodically, faster when the level is higher
 
     is_paused = False
+    hard = False
 
     while (playing):
         clock.tick(FPS) # maintains 60 fps 
@@ -228,9 +231,18 @@ def main():
         draw_board()
         tetris.draw_grid()
 
+        if tetris.level >= 1:
+            hard = True
+
         # background noise
-        pygame.mixer.Sound.play(background_noise, -1)
-        pygame.mixer.Sound.set_volume(background_noise, 0.04)
+        if not hard:
+            pygame.mixer.Sound.play(background_noise, -1)
+            pygame.mixer.Sound.set_volume(background_noise, 0.04)
+        else:
+            pygame.mixer.Sound.stop(background_noise)
+            pygame.mixer.Sound.play(hard_mode, -1)
+            pygame.mixer.Sound.set_volume(hard_mode, 0.04)
+
 
         # monitors player inputs and game mechanics
         for event in pygame.event.get():
@@ -290,6 +302,7 @@ def main():
 
         # PAUSE MENU
         if is_paused:
+                    pygame.mixer.Sound.stop(background_noise)
                     pause_box = pygame.Rect(189, 177, 8 * CELLSIZE, 12 * CELLSIZE)
                     pygame.draw.rect(win, BLACK, pause_box)
                     border = pygame.Rect(189, 177, 8 * CELLSIZE, 12 * CELLSIZE)
