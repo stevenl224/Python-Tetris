@@ -19,9 +19,9 @@ pip install pygame
 Double click the main.py file to open the game. It will start automatically.
 
 Controls:
-* Use Left arrow key to move left and Right arrow key to move right.
-* Use Down arrow key to fall faster.
-* Use Up arrow key to rotate the figures.
-* Use Space to fall instantly.
-* Press P to pause or unpause the game.
-* Press Esc or q to quit the game.
+* Use **Left** arrow key to move left and **Right** arrow key to move right.
+* Use **Down** arrow key to fall faster.
+* Use **Up** arrow key to rotate the figures.
+* Use **Space** to fall instantly.
+* Press **P** to pause or unpause the game.
+* Press **Esc** or **q** to quit the game.
