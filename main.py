@@ -213,6 +213,7 @@ class Tetris:
 
             if cleared:
                 pygame.mixer.Sound.stop(background_noise)
+                pygame.mixer.Sound.stop(hard_mode)
                 pygame.mixer.Sound.play(level_completion)
                 pygame.mixer.Sound.set_volume(level_completion, .5)
 
@@ -222,7 +223,7 @@ class Tetris:
                 self.lines_cleared += 1
                 recurse = True
 
-                if self.score % (80 + 20 * (self.level+1)) == 0:
+                if self.lines_cleared % 10 == 0:
                     self.level += 1
         if recurse:
             self.clear_line()
@@ -327,7 +328,7 @@ def main():
         if not hard:
             if not is_paused:
                 pygame.mixer.Sound.stop(pause_music)
-            if not tetris.gameover:    
+            if not tetris.gameover:
                 pygame.mixer.Sound.play(background_noise, -1)
                 pygame.mixer.Sound.set_volume(background_noise, 0.05)
         else:
@@ -357,6 +358,8 @@ def main():
                         tetris.hold.y = tetris.figure.y
                     tetris.hold_figure()
                     held_block = tetris.hold.image()
+                if key[pygame.KEYUP]:
+                    pygame.event.clear()
                 if event.type == block_fall:
                     if not tetris.gameover:
                         tetris.gravity()
@@ -417,7 +420,6 @@ def main():
                      2, pause_box.y + 8 * CELLSIZE))
         elif is_paused and tetris.gameover:
             pass
-
 
         # HUD
         if tetris.next:
