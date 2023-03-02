@@ -101,6 +101,9 @@ class Tetris:
         self.level = 0
         self.score = 0
         self.next = None
+        self.next1 = None
+        self.next2 = None
+        self.hold = None
         # 20x10 array to act as board
         self.board = [[0 for j in range(cols)] for i in range(rows)]
         self.gameover = False
@@ -118,8 +121,23 @@ class Tetris:
     def new_figure(self):
         if not self.next:
             self.next = Tetramino(0, 0)
+        if not self.next1:
+            self.next1 = Tetramino(0, 0)
+        if not self.next2:
+            self.next2 = Tetramino(0, 0)
         self.figure = self.next
-        self.next = Tetramino(0, 0)
+        self.next = self.next1
+        self.next1 = self.next2
+        self.next2 = Tetramino(0, 0)
+
+    def hold_figure(self):
+        if not self.hold:
+            self.hold = self.figure
+            self.new_figure()
+        else:
+            temp = self.hold
+            self.hold = self.figure
+            self.figure = temp
 
 # GAME MECHANICS
     def gravity(self):
@@ -192,6 +210,7 @@ class Tetris:
                 pygame.mixer.Sound.stop(background_noise)
                 pygame.mixer.Sound.play(level_completion)
                 pygame.mixer.Sound.set_volume(level_completion, .5)
+
                 del self.board[row]
                 self.board.insert(0, [0 for i in range(self.cols)])
                 cleared_rows += 1
@@ -218,6 +237,7 @@ def draw_board():
 def main():
     playing = True
     clock = pygame.time.Clock()
+
     block_fall = pygame.USEREVENT + 1
     tetris = Tetris(ROWS, COLUMNS)
     # blocks fall periodically, faster when the level is higher
@@ -230,6 +250,8 @@ def main():
         clock.tick(FPS)  # maintains 60 fps
         image = tetris.figure.image()
         next_block = tetris.next.image()
+        next1_block = tetris.next1.image()
+        next2_block = tetris.next2.image()
         key = pygame.key.get_pressed()
 
         # initialization of empty board/playing area
@@ -264,6 +286,12 @@ def main():
                     tetris.rotate()
                 if key[pygame.K_SPACE]:
                     tetris.instant_drop()
+                if key[pygame.K_c]:
+                    if tetris.hold:
+                        tetris.hold.x = tetris.figure.x
+                        tetris.hold.y = tetris.figure.y
+                    tetris.hold_figure()
+                    held_block = tetris.hold.image()
                 if event.type == block_fall:
                     if not tetris.gameover:
                         tetris.gravity()
@@ -273,7 +301,7 @@ def main():
                 tetris.__init__(ROWS, COLUMNS)
                 is_paused = False
 
-        # Shows Next Piece
+        # SHOWS PLACED PIECES
         for x in range(ROWS):
             for y in range(COLUMNS):
                 if tetris.board[x][y] in IMAGES.keys():
@@ -323,9 +351,10 @@ def main():
 
         # HUD
         if tetris.next:
+            # next piece
             for indx in range(len(next_block)):
                 x = tetris.next.x + 8 * CELLSIZE
-                y = tetris.next.y + 5 * CELLSIZE
+                y = tetris.next.y + 2 * CELLSIZE
                 if 4 > next_block[indx]:
                     x += next_block[indx] * CELLSIZE
                 elif 4 <= next_block[indx] <= 7:
@@ -340,12 +369,73 @@ def main():
                 img = IMAGES[tetris.next.color]
                 win.blit(img, (x, y))
 
+            # next next piece
+            for indx in range(len(next1_block)):
+                x = tetris.next.x + 8 * CELLSIZE
+                y = tetris.next.y + 7 * CELLSIZE
+                if 4 > next1_block[indx]:
+                    x += next1_block[indx] * CELLSIZE
+                elif 4 <= next1_block[indx] <= 7:
+                    x += (next1_block[indx] % 4)*CELLSIZE
+                    y += CELLSIZE - 1
+                elif 8 <= next1_block[indx] <= 11:
+                    x += (next1_block[indx] % 4)*CELLSIZE
+                    y += CELLSIZE*2 - 1
+                elif 12 <= next1_block[indx]:
+                    x += (next1_block[indx] % 4)*CELLSIZE
+                    y += CELLSIZE*3 - 1
+                img = IMAGES[tetris.next1.color]
+                win.blit(img, (x, y))
+
+            # next next next piece
+            for indx in range(len(next2_block)):
+                x = tetris.next.x + 8 * CELLSIZE
+                y = tetris.next.y + 12 * CELLSIZE
+                if 4 > next2_block[indx]:
+                    x += next2_block[indx] * CELLSIZE
+                elif 4 <= next2_block[indx] <= 7:
+                    x += (next2_block[indx] % 4)*CELLSIZE
+                    y += CELLSIZE - 1
+                elif 8 <= next2_block[indx] <= 11:
+                    x += (next2_block[indx] % 4)*CELLSIZE
+                    y += CELLSIZE*2 - 1
+                elif 12 <= next2_block[indx]:
+                    x += (next2_block[indx] % 4)*CELLSIZE
+                    y += CELLSIZE*3 - 1
+                img = IMAGES[tetris.next2.color]
+                win.blit(img, (x, y))
+
+        # DISPLAYS CURRENT HELD BLOCK
+        if tetris.hold:
+            for indx in range(len(held_block)):
+                x = 162 - 5 * CELLSIZE
+                y = 122 + 2 * CELLSIZE
+                if 4 > held_block[indx]:
+                    x += held_block[indx] * CELLSIZE
+                elif 4 <= held_block[indx] <= 7:
+                    x += (held_block[indx] % 4)*CELLSIZE
+                    y += CELLSIZE - 1
+                elif 8 <= held_block[indx] <= 11:
+                    x += (held_block[indx] % 4)*CELLSIZE
+                    y += CELLSIZE*2 - 1
+                elif 12 <= held_block[indx]:
+                    x += (held_block[indx] % 4)*CELLSIZE
+                    y += CELLSIZE*3 - 1
+                img = IMAGES[tetris.hold.color]
+                win.blit(img, (x, y))
+
         score = score_font.render(f'{tetris.score}', True, WHITE)
         level = lvl_font.render(f'Level: {tetris.level}', True, WHITE)
+        nxt_text = lvl_font.render(f'NEXT', True, WHITE)
+        hold_text = lvl_font.render(f'HOLD',  True, WHITE)
+
         win.blit(score, (tetris.next.x + 8 * CELLSIZE,
                  HEIGHT - tetris.next.y - 3 * CELLSIZE))
         win.blit(level, (tetris.next.x + 8 * CELLSIZE,
                  HEIGHT - tetris.next.y - CELLSIZE))
+        win.blit(nxt_text, (WIDTH-160 + nxt_text.get_width() //
+                 2, tetris.next.y))
+        win.blit(hold_text, (160 - 4 * CELLSIZE, tetris.next.y))
 
         # GAME OVER
         if not tetris.gameover:
