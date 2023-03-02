@@ -23,12 +23,17 @@ WHITE = (255, 255, 255)
 # Fonts
 score_font = pygame.font.SysFont("Adobe Gothic Std Kalin", 55)
 lvl_font = pygame.font.SysFont("Futura Black", 30)
+controls_font = pygame.font.SysFont("Futura Black", 35)
+controls_font.set_underline(True)
+
 # load sounds
 # taken from OpengameArt and Freesound
 level_completion = pygame.mixer.Sound('sounds\lvl_complete.mp3')
 background_noise = pygame.mixer.Sound('sounds\/background_noise.mp3')
 game_over_sound = pygame.mixer.Sound('sounds\game_over.mp3')
 hard_mode = pygame.mixer.Sound('sounds\push_ahead.ogg')
+pause_music = pygame.mixer.Sound('sounds\pause_music.mp3')
+start_screen_music = pygame.mixer.Sound('sounds\start screen.mp3')
 
 # load all images
 img1 = pygame.image.load('Pieces\I_piece.png')
@@ -104,6 +109,7 @@ class Tetris:
         self.next1 = None
         self.next2 = None
         self.hold = None
+        self.lines_cleared = 0
         # 20x10 array to act as board
         self.board = [[0 for j in range(cols)] for i in range(rows)]
         self.gameover = False
@@ -194,7 +200,6 @@ class Tetris:
             self.gameover = True
 
     def clear_line(self):
-        cleared_rows = 0
         recurse = False
         for row in range(self.rows - 1, -1, -1):
             cleared, skip = False, False
@@ -213,16 +218,14 @@ class Tetris:
 
                 del self.board[row]
                 self.board.insert(0, [0 for i in range(self.cols)])
-                cleared_rows += 1
                 self.score += 10 * (self.level + 1)
+                self.lines_cleared += 1
                 recurse = True
 
                 if self.score % (80 + 20 * (self.level+1)) == 0:
                     self.level += 1
         if recurse:
             self.clear_line()
-
-        return cleared_rows
 
 # Board Outline
 
@@ -234,6 +237,15 @@ def draw_board():
         160, 120, WIDTH-160*2, HEIGHT-120*2), 2)
 
 
+def draw_pop_up():
+    pop_up = pygame.Rect(189, 177, 8 * CELLSIZE, 12 * CELLSIZE)
+    pygame.draw.rect(win, BLACK, pop_up)
+    border = pygame.Rect(189, 177, 8 * CELLSIZE, 12 * CELLSIZE)
+    pygame.draw.rect(win, RED, border, 2)
+
+    return (pop_up, border)
+
+
 def main():
     playing = True
     clock = pygame.time.Clock()
@@ -241,8 +253,9 @@ def main():
     block_fall = pygame.USEREVENT + 1
     tetris = Tetris(ROWS, COLUMNS)
     # blocks fall periodically, faster when the level is higher
-    pygame.time.set_timer(block_fall, 1000 - 50 * (tetris.level+1))
+    pygame.time.set_timer(block_fall, 1000 - 75 * (tetris.level+1))
 
+    start_screen = True
     is_paused = False
     hard = False
 
@@ -254,6 +267,55 @@ def main():
         next2_block = tetris.next2.image()
         key = pygame.key.get_pressed()
 
+        while (start_screen):
+            win.fill(BLACK)
+            pygame.mixer.Sound.play(start_screen_music, -1)
+            pygame.mixer.Sound.set_volume(start_screen_music, 0.3)
+
+            title = score_font.render('TETRIS', True, WHITE)
+            controls = controls_font.render(f'Controls:', True, WHITE)
+            left_right = lvl_font.render(
+                'Left & Right keys to move horizontally', True, WHITE)
+            up = lvl_font.render('Up key to rotate figures', True, WHITE)
+            down = lvl_font.render('Down key to fall faster', True, WHITE)
+            space = lvl_font.render('Space to fall instantly', True, WHITE)
+            c = lvl_font.render('C to hold a figure', True, WHITE)
+            p = lvl_font.render('P to pause the game', True, WHITE)
+            quit_control = lvl_font.render('ESC or Q to quit', True, WHITE)
+            continue_text = score_font.render(
+                f'*Press any button to continue*',  True, WHITE)
+
+            win.blit(title, (win.get_width() // 2 -
+                     title.get_width()//2, 2 * CELLSIZE))
+            win.blit(controls, (win.get_width() // 2 -
+                     controls.get_width()//2, 5 * CELLSIZE + CELLSIZE // 2))
+            win.blit(left_right, (win.get_width() // 2 -
+                     left_right.get_width()//2, 7 * CELLSIZE))
+            win.blit(up, (win.get_width() // 2-up.get_width() //
+                     2, 9 * CELLSIZE))
+            win.blit(down, (win.get_width() // 2-down.get_width() //
+                     2, 11 * CELLSIZE))
+            win.blit(space, (win.get_width() // 2-space.get_width() //
+                     2, 13 * CELLSIZE))
+            win.blit(c, (win.get_width() // 2-c.get_width() //
+                     2, 15 * CELLSIZE))
+            win.blit(p, (win.get_width() // 2-p.get_width() //
+                     2, 17 * CELLSIZE))
+            win.blit(quit_control, (win.get_width() // 2-quit_control.get_width() //
+                     2, 19 * CELLSIZE))
+            win.blit(continue_text, (win.get_width() // 2-continue_text.get_width() //
+                     2, 23 * CELLSIZE))
+            pygame.display.update()
+
+            for event in pygame.event.get():
+                if event.type == pygame.KEYDOWN:
+                    if event.type == pygame.K_q or event.type == pygame.K_ESCAPE:
+                        playing = False
+                        break
+                    start_screen = False
+                    pygame.mixer.Sound.stop(start_screen_music)
+                    pygame.time.delay(250)
+
         # initialization of empty board/playing area
         draw_board()
         tetris.draw_grid()
@@ -263,12 +325,15 @@ def main():
 
         # background noise
         if not hard:
-            pygame.mixer.Sound.play(background_noise, -1)
-            pygame.mixer.Sound.set_volume(background_noise, 0.04)
+            if not is_paused:
+                pygame.mixer.Sound.stop(pause_music)
+            if not tetris.gameover:    
+                pygame.mixer.Sound.play(background_noise, -1)
+                pygame.mixer.Sound.set_volume(background_noise, 0.05)
         else:
             pygame.mixer.Sound.stop(background_noise)
             pygame.mixer.Sound.play(hard_mode, -1)
-            pygame.mixer.Sound.set_volume(hard_mode, 0.04)
+            pygame.mixer.Sound.set_volume(hard_mode, 0.05)
 
         # monitors player inputs and game mechanics
         for event in pygame.event.get():
@@ -328,26 +393,31 @@ def main():
             win.blit(img, (x, y))
 
         # PAUSE MENU
-        if is_paused:
+        if is_paused and not tetris.gameover:
             pygame.mixer.Sound.stop(background_noise)
+            pygame.mixer.Sound.play(pause_music, -1)
+            pygame.mixer.Sound.set_volume(pause_music, 0.15)
             pause_box = pygame.Rect(189, 177, 8 * CELLSIZE, 12 * CELLSIZE)
             pygame.draw.rect(win, BLACK, pause_box)
             border = pygame.Rect(189, 177, 8 * CELLSIZE, 12 * CELLSIZE)
             pygame.draw.rect(win, RED, border, 2)
 
-            gameover = score_font.render("Paused", True, WHITE)
-            pause = lvl_font.render("Press 'p' to resume", True, WHITE)
+            paused = score_font.render("Paused", True, WHITE)
+            resume = lvl_font.render("Press 'p' to resume", True, WHITE)
             restart = lvl_font.render("Press 'r' to restart", True, WHITE)
             quit = lvl_font.render("Press 'q' to quit", True, WHITE)
 
-            win.blit(gameover, (pause_box.centerx -
-                     gameover.get_width()//2, pause_box.y + 2 * CELLSIZE))
-            win.blit(pause, (pause_box.centerx-pause.get_width() //
+            win.blit(paused, (pause_box.centerx -
+                     paused.get_width()//2, pause_box.y + 2 * CELLSIZE))
+            win.blit(resume, (pause_box.centerx-resume.get_width() //
                      2, pause_box.y + 6 * CELLSIZE))
             win.blit(restart, (pause_box.centerx-restart.get_width() //
                      2, pause_box.y + 7 * CELLSIZE))
             win.blit(quit, (pause_box.centerx-quit.get_width() //
                      2, pause_box.y + 8 * CELLSIZE))
+        elif is_paused and tetris.gameover:
+            pass
+
 
         # HUD
         if tetris.next:
@@ -424,6 +494,7 @@ def main():
                 img = IMAGES[tetris.hold.color]
                 win.blit(img, (x, y))
 
+        # TEXT FOR SCORE, LEVEL, ETC
         score = score_font.render(f'{tetris.score}', True, WHITE)
         level = lvl_font.render(f'Level: {tetris.level}', True, WHITE)
         nxt_text = lvl_font.render(f'NEXT', True, WHITE)
@@ -446,21 +517,26 @@ def main():
                 pygame.mixer.Sound.play(game_over_sound)
                 pygame.mixer.Sound.set_volume(game_over_sound, 0.1)
             counter += 1
-            end_prompt = pygame.Rect(189, 177, 8 * CELLSIZE, 12 * CELLSIZE)
-            pygame.draw.rect(win, BLACK, end_prompt)
-            border = pygame.Rect(189, 177, 8 * CELLSIZE, 12 * CELLSIZE)
-            pygame.draw.rect(win, RED, border, 2)
+
+            pop_up, border = draw_pop_up()
 
             gameover = score_font.render("Game Over", True, WHITE)
-            restart = lvl_font.render("Press 'r' to restart", True, WHITE)
-            quit = lvl_font.render("Press 'q' to quit", True, WHITE)
+            restart = lvl_font.render("Press 'R' to restart", True, WHITE)
+            quit = lvl_font.render("Press 'Q' to quit", True, WHITE)
+            end_score = lvl_font.render(f'Score: {tetris.score}', True, WHITE)
+            lines_cleared = lvl_font.render(
+                f'Lines: {tetris.lines_cleared}', True, WHITE)
 
-            win.blit(gameover, (end_prompt.centerx -
-                     gameover.get_width()//2, end_prompt.y + 2 * CELLSIZE))
-            win.blit(restart, (end_prompt.centerx-restart.get_width() //
-                     2, end_prompt.y + 6 * CELLSIZE))
-            win.blit(quit, (end_prompt.centerx-quit.get_width() //
-                     2, end_prompt.y + 7 * CELLSIZE))
+            win.blit(gameover, (pop_up.centerx -
+                     gameover.get_width()//2, pop_up.y + CELLSIZE))
+            win.blit(end_score, (pop_up.centerx -
+                     end_score.get_width()//2, pop_up.y + 5 * CELLSIZE))
+            win.blit(lines_cleared, (pop_up.centerx -
+                     lines_cleared.get_width()//2, pop_up.y + 6 * CELLSIZE))
+            win.blit(restart, (pop_up.centerx-restart.get_width() //
+                     2, pop_up.y + 8 * CELLSIZE))
+            win.blit(quit, (pop_up.centerx-quit.get_width() //
+                     2, pop_up.y + 9 * CELLSIZE))
 
             is_paused = True
 
