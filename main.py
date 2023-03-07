@@ -96,7 +96,14 @@ class Tetramino:
 
     # rotates tetramino clockwise
     def rotate(self):
+        
         self.rotation = (self.rotation + 1) % len(self.shape)
+    
+    def counter_clock_rotate(self):
+        if self.rotation == -1:
+            self.rotation = 4
+        else:
+            self.rotation = (self.rotation - 1) % len(self.shape)
 
 
 class Tetris:
@@ -173,6 +180,12 @@ class Tetris:
 
     def rotate(self):
         self.figure.rotate()
+
+        if self.collision():
+            self.figure.counter_clock_rotate()
+
+    def offset(self):
+        pass
 
     def collision(self):
         collision = False
