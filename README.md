@@ -16,7 +16,11 @@ pip install pygame
 ```
 ## How to play
 
-Double click the main.py file to open the game. It will start automatically.
+Open a CLI and change your working directory to the folder of the cloned repository. Enter the comamand below to play.
+
+```bash
+python main.py
+```
 
 Controls:
 * Use **Left** arrow key to move left and **Right** arrow key to move right.
